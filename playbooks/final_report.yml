@@ -1,0 +1,45 @@
+---
+# ─── Rapport de validation finale ───
+- name: "Rapport de validation LinuxStack Pro Lab"
+  hosts: lab
+  gather_facts: true
+
+  tasks:
+    - name: "Collecter les informations système"
+      ansible.builtin.setup:
+        gather_subset:
+          - hardware
+          - network
+
+    - name: "Vérifier l'uptime"
+      ansible.builtin.command: uptime -p
+      register: uptime_result
+      changed_when: false
+
+    - name: "Vérifier l'espace disque"
+      ansible.builtin.command: df -h --output=target,avail /
+      register: disk_result
+      changed_when: false
+
+    - name: "Vérifier la mémoire"
+      ansible.builtin.command: free -h
+      register: mem_result
+      changed_when: false
+
+    - name: "Vérifier les services actifs"
+      ansible.builtin.command:
+        cmd: systemctl list-units --type=service --state=active --no-legend
+      register: services_result
+      changed_when: false
+
+    - name: "Générer le rapport"
+      ansible.builtin.debug:
+        msg:
+          - "═══════════════════════════════════════"
+          - "VM        : {{ inventory_hostname }}"
+          - "IP        : {{ ansible_default_ipv4.address }}"
+          - "OS        : {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Uptime    : {{ uptime_result.stdout }}"
+          - "RAM libre : {{ ansible_memfree_mb }} MB"
+          - "Espace Disque Libre    : {{ disk_result.stdout_lines[1] }}"
+          - "═══════════════════════════════════════"

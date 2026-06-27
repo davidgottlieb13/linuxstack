@@ -1,0 +1,115 @@
+---
+# ─── Playbook déploiement SFTP + MinIO ───
+- name: "Déploiement SFTP et MinIO sur vm-files"
+  hosts: files
+  gather_facts: true
+
+  tasks:
+    - name: "Installer les dépendances"
+      ansible.builtin.dnf:
+        name:
+          - openssh-server
+          - openldap-clients
+          - sssd
+          - sssd-ldap
+          - curl
+        state: present
+
+    - name: "Créer le groupe sftp-users"
+      ansible.builtin.group:
+        name: sftp-users
+        state: present
+
+    - name: "Créer la structure SFTP"
+      ansible.builtin.file:
+        path: "/data/sftp/{{ item.user }}/{{ item.dir }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { user: labadmin, dir: '',       owner: root,     group: root,       mode: '0755' }
+        - { user: labadmin, dir: uploads,  owner: labadmin, group: sftp-users, mode: '0770' }
+        - { user: jdupont,  dir: '',       owner: root,     group: root,       mode: '0755' }
+        - { user: jdupont,  dir: uploads,  owner: jdupont,  group: sftp-users, mode: '0770' }
+        - { user: mmartin,  dir: '',       owner: root,     group: root,       mode: '0755' }
+        - { user: mmartin,  dir: uploads,  owner: mmartin,  group: sftp-users, mode: '0770' }
+
+    - name: "Déployer la configuration SSSD"
+      ansible.builtin.template:
+        src: templates/sssd.conf.j2
+        dest: /etc/sssd/sssd.conf
+        mode: '0600'
+      notify: restart sssd
+
+    - name: "Déployer la configuration SSH"
+      ansible.builtin.template:
+        src: templates/sshd_config.j2
+        dest: /etc/ssh/sshd_config
+        mode: '0600'
+      notify: restart sshd
+
+    - name: "Ajouter le dépôt Docker"
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/rhel/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: "Installer Docker"
+      ansible.builtin.dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: "Démarrer Docker"
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: "Créer les répertoires MinIO"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "1000"
+        group: "1000"
+        mode: '0755'
+      loop:
+        - /data/minio/data
+        - /data/minio/config
+        - /opt/minio
+
+    - name: "Déployer docker-compose MinIO"
+      ansible.builtin.template:
+        src: templates/minio-compose.yml.j2
+        dest: /opt/minio/docker-compose.yml
+        mode: '0644'
+
+    - name: "Démarrer MinIO"
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/minio
+
+    - name: "Ouvrir les ports"
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - "22/tcp"
+        - "9000/tcp"
+        - "9001/tcp"
+
+  handlers:
+    - name: restart sssd
+      ansible.builtin.systemd:
+        name: sssd
+        state: restarted
+
+    - name: restart sshd
+      ansible.builtin.systemd:
+        name: sshd
+        state: restarted

@@ -1,0 +1,16 @@
+# ─── Playbook de test de connectivité ───
+- name: "Test de connectivité globale"
+  hosts: lab
+  gather_facts: false
+
+  tasks:
+    - name: "Ping toutes les VMs"
+      ansible.builtin.ping:
+
+    - name: "Afficher le hostname de chaque VM"
+      ansible.builtin.command: hostname
+      register: result
+
+    - name: "Résultat"
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} => {{ result.stdout }}"

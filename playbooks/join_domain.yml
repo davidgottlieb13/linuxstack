@@ -1,0 +1,47 @@
+---
+# ─── Playbook d'intégration au domaine FreeIPA ───
+- name: "Intégration des VMs au domaine lab.local"
+  hosts: lab
+  gather_facts: true
+
+  vars:
+    ipa_server: "ipa.lab.local"
+    ipa_domain: "lab.local"
+    ipa_realm: "LAB.LOCAL"
+    ipa_admin_password: "gottlieb"
+
+  tasks:
+    - name: "Installation du client FreeIPA"
+      ansible.builtin.dnf:
+        name: freeipa-client
+        state: present
+
+    - name: "Configuration du DNS vers FreeIPA"
+      ansible.builtin.nmcli:
+        conn_name: ens192
+        type: ethernet
+        dns4:
+          - 192.168.10.20
+        state: present
+
+    - name: "Intégration au domaine FreeIPA"
+      ansible.builtin.command: >
+        ipa-client-install
+        --server={{ ipa_server }}
+        --domain={{ ipa_domain }}
+        --realm={{ ipa_realm }}
+        --principal=admin
+        --password="{{ ipa_admin_password }}"
+        --mkhomedir
+        --no-ntp
+        --unattended
+      args:
+        creates: /etc/ipa/default.conf
+
+    - name: "Vérification de l'intégration"
+      ansible.builtin.command: realm list
+      register: realm_output
+
+    - name: "Afficher le résultat"
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} => {{ realm_output.stdout }}"

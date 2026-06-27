@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinuxStack Pro Lab</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    h1 { font-size: 2.5rem; color: #7AB8E0; margin-bottom: 0.5rem; }
+    p  { color: #888; margin-bottom: 2rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      width: 90%;
+      max-width: 800px;
+    }
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2a3560;
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover { border-color: #7AB8E0; transform: translateY(-3px); }
+    .card h2 { font-size: 1rem; color: #7AB8E0; margin-bottom: 0.4rem; }
+    .card p  { font-size: 0.85rem; color: #666; margin: 0; }
+  </style>
+</head>
+<body>
+  <h1>LinuxStack Pro Lab</h1>
+  <p>Enterprise Services Stack — Infrastructure de démonstration</p>
+  <div class="grid">
+    <a class="card" href="/auth/">
+      <h2>🔐 Keycloak SSO</h2>
+      <p>Gestion des identités</p>
+    </a>
+    <a class="card" href="https://ipa.{{ domain_name }}/ipa/ui/">
+      <h2>📂 FreeIPA</h2>
+      <p>Annuaire & DNS</p>
+    </a>
+    <a class="card" href="/storage/">
+      <h2>📁 MinIO</h2>
+      <p>Object Storage</p>
+    </a>
+    <a class="card" href="/monitoring/">
+      <h2>📊 Grafana</h2>
+      <p>Observabilité & Logs</p>
+    </a>
+  </div>
+</body>
+</html>

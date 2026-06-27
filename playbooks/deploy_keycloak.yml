@@ -1,0 +1,49 @@
+---
+# ─── Playbook déploiement Keycloak ───
+- name: "Déploiement de Keycloak sur vm-web"
+  hosts: web
+  gather_facts: true
+
+  tasks:
+    - name: "Ajouter le dépôt Docker"
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/rhel/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: "Installer Docker"
+      ansible.builtin.dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: "Démarrer Docker"
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: "Créer le répertoire Keycloak"
+      ansible.builtin.file:
+        path: /opt/keycloak
+        state: directory
+        mode: '0755'
+
+    - name: "Déployer docker-compose.yml"
+      ansible.builtin.template:
+        src: templates/keycloak-compose.yml.j2
+        dest: /opt/keycloak/docker-compose.yml
+        mode: '0644'
+
+    - name: "Démarrer Keycloak"
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/keycloak
+
+    - name: "Activer le service keycloak au boot"
+      ansible.builtin.systemd:
+        name: keycloak
+        enabled: true
+        daemon_reload: true

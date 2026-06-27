@@ -1,0 +1,21 @@
+# ─── LinuxStack Pro Lab — Variables globales ───
+
+# Domaine
+domain_name: "lab.local"
+realm: "LAB.LOCAL"
+
+# Réseau
+network_prefix: "192.168.10"
+dns_server: "192.168.10.20"
+
+# NTP
+ntp_server: "pool.ntp.org"
+
+# Utilisateur admin du Lab
+lab_admin_user: "root"
+
+# Docker
+docker_compose_version: "2.24.0"
+
+# Timezone
+timezone: "Africa/Lome"

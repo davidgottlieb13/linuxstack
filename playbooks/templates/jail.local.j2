@@ -1,0 +1,76 @@
+# ─── LinuxStack Pro Lab — Configuration Fail2Ban ───
+
+[DEFAULT]
+# IPs jamais bannies (réseau interne Lab)
+ignoreip = 127.0.0.1/8 ::1 192.168.100.0/24
+
+# Durée du ban (10 minutes)
+bantime  = 600
+
+# Fenêtre de détection (10 minutes)
+findtime = 600
+
+# Nombre de tentatives avant ban
+maxretry = 3
+
+# Backend de lecture des logs
+backend = systemd
+
+# Action de ban
+banaction = firewallcmd-ipset
+banaction_allports = firewallcmd-allports
+
+# Email d'alerte (désactivé en Lab)
+action = %(action_)s
+
+# ─── SSH ───
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+maxretry = 3
+bantime  = 3600
+
+# ─── SSH — Force brute agressive ───
+[sshd-ddos]
+enabled  = true
+port     = ssh
+filter   = sshd
+maxretry = 10
+findtime = 60
+bantime  = 86400
+
+{% if 'mail' in group_names %}
+# ─── Postfix SMTP ───
+[postfix]
+enabled  = true
+port     = smtp,465,submission
+filter   = postfix
+maxretry = 5
+bantime  = 3600
+
+# ─── Dovecot IMAP/POP3 ───
+[dovecot]
+enabled  = true
+port     = pop3,pop3s,imap,imaps,submission,465,sieve
+filter   = dovecot
+maxretry = 5
+bantime  = 3600
+{% endif %}
+
+{% if 'web' in group_names %}
+# ─── Nginx ───
+[nginx-http-auth]
+enabled  = true
+port     = http,https
+filter   = nginx-http-auth
+maxretry = 5
+bantime  = 3600
+
+[nginx-limit-req]
+enabled  = true
+port     = http,https
+filter   = nginx-limit-req
+maxretry = 10
+bantime  = 600
+{% endif %}

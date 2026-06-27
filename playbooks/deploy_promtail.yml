@@ -1,0 +1,148 @@
+---
+# ─── Déploiement Promtail sur toutes les VMs ───
+- name: "Déploiement de Promtail"
+  hosts: lab
+  gather_facts: true
+
+  vars:
+    promtail_version: "2.9.0"
+    loki_url: "http://192.168.10.60:3100"
+
+  tasks:
+    - name: "Créer le répertoire Promtail"
+      ansible.builtin.file:
+        path: /opt/promtail
+        state: directory
+        mode: '0755'
+
+    - name: "Télécharger Promtail"
+      ansible.builtin.get_url:
+        url: "https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-amd64.zip"
+        dest: /tmp/promtail.zip
+        mode: '0644'
+
+    - name: "Installer unzip"
+      ansible.builtin.dnf:
+        name: unzip
+        state: present
+
+    - name: "Extraire Promtail"
+      ansible.builtin.unarchive:
+        src: /tmp/promtail.zip
+        dest: /opt/promtail/
+        remote_src: yes
+
+    - name: "Rendre Promtail exécutable"
+      ansible.builtin.file:
+        path: /opt/promtail/promtail-linux-amd64
+        mode: '0755'
+
+    - name: "Créer le lien symbolique"
+      ansible.builtin.file:
+        src: /opt/promtail/promtail-linux-amd64
+        dest: /usr/local/bin/promtail
+        state: link
+
+    - name: "Déployer la configuration Promtail"
+      ansible.builtin.template:
+        src: templates/promtail-config.yml.j2
+        dest: /opt/promtail/config.yml
+        mode: '0644'
+      notify: restart promtail
+
+    - name: "Créer le service systemd Promtail"
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/promtail.service
+        content: |
+          [Unit]
+          Description=Promtail Log Collector
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/promtail -config.file=/opt/promtail/config.yml
+          Restart=always
+          RestartSec=10
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+      notify: reload systemd
+
+    - name: "Démarrer Promtail"
+      ansible.builtin.systemd:
+        name: promtail
+        state: started
+        enabled: true
+        daemon_reload: true
+
+  handlers:
+    - name: restart promtail
+      ansible.builtin.systemd:
+        name: promtail
+        state: restarted
+
+    - name: reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+
+# ─── Déploiement Promtail sur vm-ansible (séparé car hors groupe lab) ───
+- name: "Déploiement Promtail sur vm-ansible"
+  hosts: localhost
+  gather_facts: true
+
+  vars:
+    loki_url: "http://192.168.10.60:3100"
+
+  tasks:
+    - name: "Créer le répertoire Promtail"
+      ansible.builtin.file:
+        path: /opt/promtail
+        state: directory
+        mode: '0755'
+
+    - name: "Vérifier si Promtail est déjà installé"
+      ansible.builtin.stat:
+        path: /usr/local/bin/promtail
+      register: promtail_bin
+
+    - name: "Déployer la configuration Promtail"
+      ansible.builtin.template:
+        src: templates/promtail-config.yml.j2
+        dest: /opt/promtail/config.yml
+        mode: '0644'
+      notify: restart promtail ansible
+
+    - name: "Créer le service systemd"
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/promtail.service
+        content: |
+          [Unit]
+          Description=Promtail Log Collector
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/promtail -config.file=/opt/promtail/config.yml
+          Restart=always
+          RestartSec=10
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: "Démarrer Promtail"
+      ansible.builtin.systemd:
+        name: promtail
+        state: started
+        enabled: true
+        daemon_reload: true
+
+  handlers:
+    - name: restart promtail ansible
+      ansible.builtin.systemd:
+        name: promtail
+        state: restarted

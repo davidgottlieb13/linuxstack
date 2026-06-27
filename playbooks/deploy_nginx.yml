@@ -1,0 +1,89 @@
+---
+# ─── Playbook déploiement Nginx ───
+- name: "Déploiement et configuration de Nginx sur vm-web"
+  hosts: web
+  gather_facts: true
+
+  tasks:
+    - name: "Installer Nginx"
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+
+    - name: "Créer les répertoires nécessaires"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/nginx/sites-available
+        - /etc/nginx/sites-enabled
+        - /etc/nginx/ssl
+        - /var/www/lab
+
+    - name: "Vérifier que les certificats SSL existent"
+      ansible.builtin.stat:
+        path: /etc/nginx/ssl/lab.crt
+      register: cert_stat
+
+    - name: "Avertissement si certificats absents"
+      ansible.builtin.fail:
+        msg: "Les certificats SSL sont absents. Générer d'abord les certificats avec mkcert sur vm-web."
+      when: not cert_stat.stat.exists
+
+    - name: "Déployer la configuration principale"
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: '0644'
+      notify: reload nginx
+
+    - name: "Déployer le virtualhost"
+      ansible.builtin.template:
+        src: templates/web.lab.local.conf.j2
+        dest: /etc/nginx/sites-available/web.lab.local.conf
+        mode: '0644'
+      notify: reload nginx
+
+    - name: "Activer le virtualhost"
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/web.lab.local.conf
+        dest: /etc/nginx/sites-enabled/web.lab.local.conf
+        state: link
+
+    - name: "Déployer la page d'accueil"
+      ansible.builtin.template:
+        src: templates/index.html.j2
+        dest: /var/www/lab/index.html
+        mode: '0644'
+
+    - name: "Autoriser Nginx en reverse proxy (SELinux)"
+      ansible.posix.seboolean:
+        name: "{{ item }}"
+        state: true
+        persistent: true
+      loop:
+        - httpd_can_network_connect
+        - httpd_can_network_relay
+
+    - name: "Ouvrir les ports HTTP et HTTPS"
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - http
+        - https
+
+    - name: "Démarrer Nginx"
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded

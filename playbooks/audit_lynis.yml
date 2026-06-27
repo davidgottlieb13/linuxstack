@@ -1,0 +1,33 @@
+---
+# ─── Audit Lynis sur toutes les VMs ───
+- name: "Audit de sécurité Lynis"
+  hosts: lab
+  gather_facts: true
+
+  tasks:
+    - name: "Installer Lynis"
+      ansible.builtin.dnf:
+        name: lynis
+        state: present
+
+    - name: "Exécuter l'audit Lynis"
+      ansible.builtin.command:
+        cmd: lynis audit system --quiet --no-colors
+      register: lynis_output
+      changed_when: false
+
+    - name: "Récupérer le score Lynis"
+      ansible.builtin.command:
+        cmd: grep "Hardening index" /var/log/lynis.log
+      register: lynis_score
+      changed_when: false
+
+    - name: "Afficher le score par VM"
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} — {{ lynis_score.stdout }}"
+
+    - name: "Sauvegarder le rapport"
+      ansible.builtin.fetch:
+        src: /var/log/lynis-report.dat
+        dest: ~/linuxstack/reports/lynis-{{ inventory_hostname }}.dat
+        flat: true

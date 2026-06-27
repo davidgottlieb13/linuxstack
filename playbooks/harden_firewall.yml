@@ -1,0 +1,133 @@
+---
+# ─── Configuration Firewall stricte par VM ───
+
+# ─── vm-ipa ───
+- name: "Firewall vm-ipa"
+  hosts: ipa
+  gather_facts: false
+
+  tasks:
+    - name: "Configurer les services autorisés sur vm-ipa"
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - ssh
+        - dns
+        - http
+        - https
+        - kerberos
+        - kpasswd
+        - freeipa-ldap
+        - freeipa-ldaps
+        - ntp
+
+    - name: "Bloquer tout le reste"
+      ansible.posix.firewalld:
+        zone: public
+        target: DROP
+        permanent: true
+        state: present
+
+# ─── vm-web ───
+- name: "Firewall vm-web"
+  hosts: web
+  gather_facts: false
+
+  tasks:
+    - name: "Configurer les services autorisés sur vm-web"
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - ssh
+        - http
+        - https
+
+    - name: "Autoriser Keycloak uniquement depuis le réseau interne"
+      ansible.posix.firewalld:
+        rich_rule: "rule family=ipv4 source address=192.168.10.0/24 port port=8080 protocol=tcp accept"
+        permanent: true
+        state: enabled
+        immediate: true
+
+# ─── vm-mail ───
+- name: "Firewall vm-mail"
+  hosts: mail
+  gather_facts: false
+
+  tasks:
+    - name: "Configurer les services autorisés sur vm-mail"
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - ssh
+        - smtp
+        - smtps
+        - imap
+        - imaps
+        - pop3
+        - pop3s
+
+    - name: "Autoriser submission port 587"
+      ansible.posix.firewalld:
+        port: 587/tcp
+        permanent: true
+        state: enabled
+        immediate: true
+
+# ─── vm-files ───
+- name: "Firewall vm-files"
+  hosts: files
+  gather_facts: false
+
+  tasks:
+    - name: "Configurer les services autorisés sur vm-files"
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - ssh
+
+    - name: "Autoriser MinIO uniquement depuis le réseau interne"
+      ansible.posix.firewalld:
+        rich_rule: "rule family=ipv4 source address=192.168.10.0/24 port port={{ item }} protocol=tcp accept"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - "9000"
+        - "9001"
+
+# ─── vm-obs ───
+- name: "Firewall vm-obs"
+  hosts: obs
+  gather_facts: false
+
+  tasks:
+    - name: "Autoriser Grafana et Loki depuis le réseau interne uniquement"
+      ansible.posix.firewalld:
+        rich_rule: "rule family=ipv4 source address=192.168.10.0/24 port port={{ item }} protocol=tcp accept"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - "3000"
+        - "310"
+        - "9080"
+
+    - name: "Autoriser SSH"
+      ansible.posix.firewalld:
+        service: ssh
+        permanent: true
+        state: enabled
+        immediate: true

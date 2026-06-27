@@ -1,0 +1,18 @@
+---
+# ─── Playbook maître — Sécurité transversale ───
+# Exécute tous les playbooks de sécurité dans l'ordre
+
+- name: "Import hardening SSH"
+  ansible.builtin.import_playbook: harden_ssh.yml
+
+- name: "Import déploiement Fail2Ban"
+  ansible.builtin.import_playbook: deploy_fail2ban.yml
+
+- name: "Import hardening firewall"
+  ansible.builtin.import_playbook: harden_firewall.yml
+
+- name: "Import audit Lynis"
+  ansible.builtin.import_playbook: audit_lynis.yml
+
+- name: "Import Logwatch"
+  ansible.builtin.import_playbook: deploy_logwatch.yml

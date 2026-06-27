@@ -1,0 +1,48 @@
+---
+# ─── Playbook de validation globale ───
+- name: "Validation globale de l'infrastructure"
+  hosts: lab
+  gather_facts: true
+
+  tasks:
+    - name: "Vérifier la connectivité réseau"
+      ansible.builtin.ping:
+
+    - name: "Vérifier la résolution DNS"
+      ansible.builtin.command:
+        cmd: dig +short ipa.lab.local
+      register: dns_result
+      failed_when: dns_result.stdout != "192.168.10.20"
+
+    - name: "Vérifier les services critiques"
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+      register: service_status
+      loop: "{{ services_to_check[inventory_hostname] | default([]) }}"
+      vars:
+        services_to_check:
+          vm_ipa:   [ipa, named, krb5kdc, httpd]
+          vm_web:   [nginx, docker]
+          vm_mail:  [postfix, dovecot]
+          vm_files: [sshd, docker, sssd]
+          vm_obs:   [docker, promtail]
+
+    - name: "Vérifier Promtail actif"
+      ansible.builtin.systemd:
+        name: promtail
+      register: promtail_status
+      failed_when: promtail_status.status.ActiveState != "active"
+
+    - name: "Vérifier Fail2Ban actif"
+      ansible.builtin.command:
+        cmd: fail2ban-client status
+      register: f2b_status
+      changed_when: false
+
+    - name: "Résumé par VM"
+      ansible.builtin.debug:
+        msg: >
+          {{ inventory_hostname }}
+          | DNS: OK
+          | Promtail: {{ promtail_status.status.ActiveState }}
+          | Fail2Ban: actif

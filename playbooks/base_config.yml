@@ -1,0 +1,64 @@
+# ─── Playbook de configuration de base ───
+- name: "Configuration de base — toutes les VMs"
+  hosts: lab
+  gather_facts: true
+
+  tasks:
+    - name: "Mise à jour du système"
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: true
+
+    - name: "Installation des outils de base"
+      ansible.builtin.dnf:
+        name:
+          - vim
+          - curl
+          - wget
+          - net-tools
+          - bash-completion
+          - chrony
+          - open-vm-tools
+          - tar
+          - unzip
+        state: present
+
+    - name: "Démarrage de open-vm-tools"
+      ansible.builtin.systemd:
+        name: vmtoolsd
+        state: started
+        enabled: true
+
+    - name: "Configuration du timezone"
+      community.general.timezone:
+        name: "{{ timezone }}"
+
+    - name: "Démarrage de chronyd (NTP)"
+      ansible.builtin.systemd:
+        name: chronyd
+        state: started
+        enabled: true
+
+    - name: "SELinux en mode permissive"
+      ansible.posix.selinux:
+        policy: targeted
+        state: permissive
+
+    - name: "Démarrage de firewalld"
+      ansible.builtin.systemd:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: "Configuration du fichier /etc/hosts"
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: "# {mark} LinuxStack Pro Lab"
+        block: |
+          192.168.10.10  ansible.lab.local  ansible
+          192.168.10.20  ipa.lab.local      ipa
+          192.168.10.30  web.lab.local      web
+          192.168.10.40  mail.lab.local     mail
+          192.168.10.50  files.lab.local    files
+          192.168.10.60  obs.lab.local      obs

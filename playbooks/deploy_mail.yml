@@ -1,0 +1,109 @@
+---
+# ─── Playbook déploiement Serveur Mail ───
+- name: "Déploiement de la stack mail sur vm-mail"
+  hosts: mail
+  gather_facts: true
+
+  tasks:
+    - name: "Installer les paquets mail"
+      ansible.builtin.dnf:
+        name:
+          - postfix
+          - postfix-ldap
+          - dovecot
+          - dovecot-ldap
+          - openldap-clients
+          - mailx
+          - cyrus-sasl
+          - cyrus-sasl-plain
+          - cyrus-sasl-ldap
+        state: present
+
+    - name: "Créer le groupe vmail"
+      ansible.builtin.group:
+        name: vmail
+        gid: 5000
+        state: present
+
+    - name: "Créer l'utilisateur vmail"
+      ansible.builtin.user:
+        name: vmail
+        uid: 5000
+        group: vmail
+        home: /var/mail/vhosts
+        shell: /sbin/nologin
+        state: present
+
+    - name: "Créer la structure des boîtes mail"
+      ansible.builtin.file:
+        path: "/var/mail/vhosts/{{ domain_name }}/{{ item }}/Maildir/{{ dir }}"
+        state: directory
+        owner: vmail
+        group: vmail
+        mode: '0700'
+      loop: "{{ mail_users }}"
+      loop_control:
+        loop_var: item
+      vars:
+        mail_users: [labadmin, jdupont, mmartin]
+      with_nested:
+        - [labadmin, jdupont, mmartin]
+        - [cur, new, tmp]
+
+    - name: "Déployer la configuration Postfix"
+      ansible.builtin.template:
+        src: "templates/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - { src: 'main.cf.j2', dest: '/etc/postfix/main.cf' }
+        - { src: 'master.cf.j2', dest: '/etc/postfix/master.cf' }
+        - { src: 'ldap-mailboxes.cf.j2', dest: '/etc/postfix/ldap-mailboxes.cf' }
+        - { src: 'ldap-aliases.cf.j2', dest: '/etc/postfix/ldap-aliases.cf' }
+      notify: restart postfix
+
+    - name: "Déployer la configuration Dovecot"
+      ansible.builtin.template:
+        src: "templates/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - { src: 'dovecot.conf.j2', dest: '/etc/dovecot/dovecot.conf' }
+        - { src: 'dovecot-ldap.conf.ext.j2', dest: '/etc/dovecot/dovecot-ldap.conf.ext' }
+      notify: restart dovecot
+
+    - name: "Ouvrir les ports mail"
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - "25/tcp"
+        - "587/tcp"
+        - "465/tcp"
+        - "143/tcp"
+        - "993/tcp"
+        - "110/tcp"
+        - "995/tcp"
+
+    - name: "Démarrer les services mail"
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - postfix
+        - dovecot
+        - rspamd
+
+  handlers:
+    - name: restart postfix
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted
+
+    - name: restart dovecot
+      ansible.builtin.systemd:
+        name: dovecot
+        state: restarted

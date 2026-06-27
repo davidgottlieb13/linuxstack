@@ -1,0 +1,72 @@
+---
+# ─── Déploiement stack PLG sur vm-obs ───
+- name: "Déploiement PLG Stack sur vm-obs"
+  hosts: obs
+  gather_facts: true
+
+  tasks:
+    - name: "Ajouter le dépôt Docker"
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/rhel/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: "Installer Docker"
+      ansible.builtin.dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: "Démarrer Docker"
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: "Créer la structure PLG"
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        mode: '0755'
+      loop:
+        - { path: /opt/plg/loki/data,                            owner: "10001" }
+        - { path: /opt/plg/promtail,                             owner: root    }
+        - { path: /opt/plg/grafana/data,                         owner: "472"   }
+        - { path: /opt/plg/grafana/provisioning/datasources,     owner: "472"   }
+        - { path: /opt/plg/grafana/provisioning/dashboards,      owner: "472"   }
+
+    - name: "Déployer les configurations"
+      ansible.builtin.template:
+        src: "templates/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - { src: loki-config.yml.j2,       dest: /opt/plg/loki/loki-config.yml              }
+        - { src: promtail-obs.yml.j2,       dest: /opt/plg/promtail/promtail-config.yml      }
+        - { src: grafana-datasource.yml.j2, dest: /opt/plg/grafana/provisioning/datasources/loki.yml }
+        - { src: plg-compose.yml.j2,        dest: /opt/plg/docker-compose.yml                }
+
+    - name: "Démarrer la stack PLG"
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: /opt/plg
+
+    - name: "Ouvrir les ports"
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - "3000/tcp"
+        - "3100/tcp"
+        - "9080/tcp"
+
+    - name: "Activer le service PLG au boot"
+      ansible.builtin.systemd:
+        name: plg
+        enabled: true
+        daemon_reload: true

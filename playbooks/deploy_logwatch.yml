@@ -1,0 +1,35 @@
+---
+# ─── Déploiement Logwatch ───
+- name: "Installation de Logwatch"
+  hosts: lab
+  gather_facts: false
+
+  tasks:
+    - name: "Installer Logwatch"
+      ansible.builtin.dnf:
+        name: logwatch
+        state: present
+
+    - name: "Configurer Logwatch"
+      ansible.builtin.copy:
+        dest: /etc/logwatch/conf/logwatch.conf
+        content: |
+          Output = stdout
+          Format = text
+          Encode = none
+          MailTo = labadmin@lab.local
+          MailFrom = logwatch@lab.local
+          Range = yesterday
+          Detail = Med
+          Service = All
+          mailer = /usr/sbin/sendmail -t
+        mode: '0644'
+
+    - name: "Créer la tâche cron quotidienne"
+      ansible.builtin.cron:
+        name: "Logwatch daily report"
+        minute: "0"
+        hour: "6"
+        job: "/usr/sbin/logwatch --output mail"
+        user: root
+        state: present

@@ -1,0 +1,37 @@
+---
+# ─── Déploiement Fail2Ban sur toutes les VMs ───
+- name: "Déploiement de Fail2Ban"
+  hosts: lab
+  gather_facts: true
+
+  tasks:
+    - name: "Installer EPEL si absent"
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+
+    - name: "Installer Fail2Ban"
+      ansible.builtin.dnf:
+        name:
+          - fail2ban
+          - fail2ban-systemd
+        state: present
+
+    - name: "Déployer la configuration Fail2Ban"
+      ansible.builtin.template:
+        src: templates/jail.local.j2
+        dest: /etc/fail2ban/jail.local
+        mode: '0644'
+      notify: restart fail2ban
+
+    - name: "Démarrer Fail2Ban"
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: started
+        enabled: true
+
+  handlers:
+    - name: restart fail2ban
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: restarted

@@ -1,0 +1,57 @@
+# ─── LinuxStack Pro Lab — Configuration SSH durcie ───
+
+# ─── Protocole et port ───
+Port 22
+Protocol 2
+AddressFamily inet
+
+# ─── Authentification ───
+PermitRootLogin prohibit-password
+PasswordAuthentication yes
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+PermitEmptyPasswords no
+MaxAuthTries 3
+MaxSessions 5
+LoginGraceTime 30
+
+# ─── Désactiver les méthodes non utilisées ───
+KerberosAuthentication no
+GSSAPIAuthentication no
+UsePAM yes
+ChallengeResponseAuthentication no
+X11Forwarding no
+PrintMotd no
+TCPKeepAlive yes
+AllowAgentForwarding no
+AllowTcpForwarding no
+
+# ─── Bannière de connexion ───
+Banner /etc/ssh/banner
+
+# ─── Logs ───
+SyslogFacility AUTHPRIV
+LogLevel VERBOSE
+
+# ─── Timeouts ───
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# ─── Algorithmes de chiffrement sécurisés ───
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256
+Ciphers aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+
+# ─── SFTP (vm-files uniquement) ───
+{% if 'files' in group_names %}
+Subsystem sftp internal-sftp -l INFO
+
+Match Group sftp-users
+    ChrootDirectory /data/sftp/%u
+    ForceCommand internal-sftp -l INFO
+    AllowTcpForwarding no
+    X11Forwarding no
+    PasswordAuthentication yes
+{% else %}
+Subsystem sftp /usr/libexec/openssh/sftp-server
+{% endif %}

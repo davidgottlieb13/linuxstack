@@ -1,0 +1,50 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/promtail-positions.yaml
+
+clients:
+  - url: {{ loki_url }}/loki/api/v1/push
+
+scrape_configs:
+
+  # ─── Logs système ───
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          host: {{ ansible_hostname }}
+          env: lab
+          __path__: /var/log/messages
+
+  # ─── Logs authentification ───
+  - job_name: auth
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: auth
+          host: {{ ansible_hostname }}
+          env: lab
+          __path__: /var/log/secure
+
+  # ─── Logs SSH ───
+  - job_name: ssh
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: ssh
+          host: {{ ansible_hostname }}
+          env: lab
+          __path__: /var/log/secure
+    pipeline_stages:
+      - match:
+          selector: '{job="ssh"}'
+          stages:
+            - regex:
+                expression: '.*sshd.*'
