@@ -20,7 +20,7 @@ This project is designed as a fully reproducible lab for system administrators a
 
 ## 🏗️ Architecture
 
-![Network Diagram](docs/images/NetworkDiagram.png)
+[Network Diagram](docs/images/NetworkDiagram.png)
 
 | VM             | Hostname            | Roles                      | IP              |
 |----------------|---------------------|----------------------------|-----------------|
@@ -60,7 +60,9 @@ Host Machines
 | CPU             | 4 cores     | 8 threads    |
 
 Software
+
 VMware Workstation 17+
+
 Rocky Linux 9 ISO → https ://rockylinux.org/download
 
 ---
@@ -68,25 +70,37 @@ Rocky Linux 9 ISO → https ://rockylinux.org/download
 ## 🚀 Quick Start
 
 ###1. Clone the repository
+
 git clone https://github.com/davidgottlieb13/linuxstack.git
+
 cd linuxstack
 
 ###2. Create the VMs
+
 Follow **Chapter 1** of the deployment guide to create and configure the 6 VMs with Rocky Linux 9.
 
 ### 3. Bootstrap vm-ansible
-####On vm-ansible
+
+On vm-ansible
+
 dnf install -y epel-release ansible
+
 git clone https://github.com/davidgottlieb13/linuxstack.git ~/linuxstack
+
 cd ~/linuxstack
 
 ### 4. Configure SSH access
+
 ssh-keygen -t ed25519 -C "ansible@lab.local" -f ~/.ssh/id_ed25519 -N ""
+
 for ip in 20 30 40 50 60; do
+
   ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.100.${ip}
 
 ### 5. Configure secrets
+
 cp group_vars/vault.yml.example group_vars/vault.yml
+
 ansible-vault encrypt group_vars/vault.yml
 
 ---
@@ -184,9 +198,13 @@ It covers:
 ## 🔐 Security Notes
 
 - All secrets are managed via **Ansible Vault** — never commit `vault.yml` in plaintext
+
 - SSL/TLS is enforced on all services using **mkcert** for local CA
+
 - **Fail2Ban** protects SSH, SMTP, IMAP, and Nginx on all VMs
+
 - **Firewalld** applies strict per-VM rules — only required ports are open
+
 - **Lynis** audit scores 60+ across all VMs
 
 > ⚠️ **This lab uses self-signed certificates and simplified configurations suitable for learning environments. Do not use as-is in production.**
