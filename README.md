@@ -63,7 +63,7 @@ Software
 
 VMware Workstation 17+
 
-Rocky Linux 9 ISO → https ://rockylinux.org/download
+Rocky Linux 9 ISO → https://rockylinux.org/download
 
 ---
 
