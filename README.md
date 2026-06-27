@@ -176,7 +176,7 @@ linuxstack
 
 ## 📖 Documentation
 
-The full step-by-step deployment guide is available in [Deployment_Guide](docs/Deployment_Guide.md).
+The full step-by-step deployment guide is available in [Deployment_Guide](docs/Deployment_Guide.pdf).
 
 It covers:
 
@@ -234,9 +234,9 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 Made by **David Gottlieb**
 
-![LinkedIn](https://www.linkedin.com/in/davidgottliebsitti/)
+[LinkedIn](https://www.linkedin.com/in/davidgottliebsitti/)
 
-![GitHub](https://github.com/davidgottlieb13)
+[GitHub](https://github.com/davidgottlieb13)
 
 ---
 
