@@ -1,7 +1,7 @@
 # LinuxStack Pro Lab 🐧
 
 Enterprise Services Stack - Full Deployment Guide
-![File Server](docs/images/FileServer.png)
+[File Server](docs/images/FileServer.png)
 ![Free IPA](docs/images/FreeIPA.png)
 ![Keycloak](docs/images/Keycloak.png)
 ![Mail Server](docs/images/MailServer.png) 
