@@ -106,7 +106,7 @@ ansible-vault encrypt group_vars/vault.yml
 ---
 
 ## 📁 Repository Structure
-
+```
 linuxstack
 ├── ansible.cfg
 ├── ansible.log
@@ -170,6 +170,7 @@ linuxstack
     ├── ssh_banner.j2
     ├── sshd_hardened.conf.j2
     └── web.lab.local.conf.j2
+```
 
 ---
 
@@ -233,8 +234,9 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 Made by **David Gottlieb**
 
-[![LinkedIn](https://www.linkedin.com/in/davidgottliebsitti/)
-[![GitHub](https://github.com/davidgottlieb13)
+![LinkedIn](https://www.linkedin.com/in/davidgottliebsitti/)
+
+![GitHub](https://github.com/davidgottlieb13)
 
 ---
 
